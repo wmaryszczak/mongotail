@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'mongo'
+
+options = {:database => '', :collection => '', :host => 'localhost', :port => '27017'}
+
+optparse = OptionParser.new do |opts|
+  opts.on('-d', '--database NAME', 'mongodb dabase name') { |value| options[:database] = value }
+  opts.on('-c', '--collection NAME', 'mongodb collection name') { |value| options[:collection] = value }
+  opts.on('-p', '--port PORT', 'mongodb port') { |value| options[:port] = value }
+  opts.on('-s', '--server HOST', 'mongodb server') { |value| options[:host] = value }
+	opts.on('-h', '--help', 'Display this screen' ) { puts opts; exit }
+  opts.parse!
+end
+
+if options[:database].empty? || options[:collection].empty?
+	puts optparse
+	exit
+end
+
+
+begin
+	connection   = Mongo::Connection.new(options[:host], options[:port])
+	database = connection.db(options[:database])
+	collection = database.collection(options[:collection])
+	cursor = Mongo::Cursor.new(collection, :tailable => true)
+	loop do
+	  if doc = cursor.next_document
+	    STDOUT.puts(doc)
+	  else
+	    sleep 1
+	  end
+	end
+rescue => ex
+	STDERR.puts(ex)
+end
